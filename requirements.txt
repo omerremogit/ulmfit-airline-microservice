@@ -1,4 +1,6 @@
-fastai
-torch
+fastai==2.7.13
+fastcore==1.5.29
 fastapi
 uvicorn
+torch
+requests
