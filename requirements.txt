@@ -3,3 +3,4 @@ fastcore==1.5.29
 fastapi
 uvicorn
 requests
+numpy<2.0
