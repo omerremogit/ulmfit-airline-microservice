@@ -7,15 +7,34 @@ import pathlib
 
 app = FastAPI()
 
-# Compatibility fix for WindowsPath
+# Fix WindowsPath on Linux
 pathlib.WindowsPath = pathlib.PosixPath
 
-# Model filename and GDrive link
+# Global model path and ID
 model_path = 'ulmfit_airline_model.pkl'
-model_url = 'https://drive.google.com/uc?export=download&id=1cdZScmtkKCT7c_1I9KaGXQWLr7qDAj0n'
+gdrive_file_id = '1cdZScmtkKCT7c_1I9KaGXQWLr7qDAj0n'
+learn = None  # Cache model after loading
 
-# Cache model instance after first load
-learn = None
+# GDrive download with confirmation token support
+def download_from_gdrive(file_id, dest_path):
+    URL = "https://docs.google.com/uc?export=download"
+    session = requests.Session()
+    response = session.get(URL, params={'id': file_id}, stream=True)
+
+    def get_confirm_token(response):
+        for key, value in response.cookies.items():
+            if key.startswith('download_warning'):
+                return value
+        return None
+
+    token = get_confirm_token(response)
+    if token:
+        response = session.get(URL, params={'id': file_id, 'confirm': token}, stream=True)
+
+    with open(dest_path, "wb") as f:
+        for chunk in response.iter_content(32768):
+            if chunk:
+                f.write(chunk)
 
 class TextInput(BaseModel):
     text: str
@@ -29,12 +48,8 @@ def predict(input: TextInput):
     global learn
 
     if not os.path.exists(model_path):
-        print("Downloading model file from Google Drive...")
-        with requests.get(model_url, stream=True) as r:
-            r.raise_for_status()
-            with open(model_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
+        print("Downloading model...")
+        download_from_gdrive(gdrive_file_id, model_path)
 
     if learn is None:
         learn = load_learner(model_path)
