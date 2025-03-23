@@ -19,8 +19,6 @@ if not os.path.exists(model_path):
 # Fix for WindowsPath incompatibility on Linux
 pathlib.WindowsPath = pathlib.PosixPath
 
-learn = load_learner(model_path)
-
 class TextInput(BaseModel):
     text: str
 
@@ -30,6 +28,7 @@ def home():
 
 @app.post("/predict/")
 def predict(input: TextInput):
+    learn = load_learner(model_path)
     pred_class, pred_idx, probs = learn.predict(input.text)
     return {
         "input": input.text,
