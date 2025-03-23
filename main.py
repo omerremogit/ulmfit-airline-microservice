@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from fastai.text.all import *
 import os
 import requests
+import pathlib
 
 app = FastAPI()
 
@@ -14,6 +15,9 @@ if not os.path.exists(model_path):
     r = requests.get(url)
     with open(model_path, 'wb') as f:
         f.write(r.content)
+
+# Fix for WindowsPath incompatibility on Linux
+pathlib.WindowsPath = pathlib.PosixPath
 
 learn = load_learner(model_path)
 
