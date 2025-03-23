@@ -7,17 +7,15 @@ import pathlib
 
 app = FastAPI()
 
-# Download model from Google Drive if not present
-model_path = 'ulmfit_airline_model.pkl'
-if not os.path.exists(model_path):
-    print("Downloading model file...")
-    url = 'https://drive.google.com/uc?export=download&id=1cdZScmtkKCT7c_1I9KaGXQWLr7qDAj0n'
-    r = requests.get(url)
-    with open(model_path, 'wb') as f:
-        f.write(r.content)
-
-# Fix for WindowsPath incompatibility on Linux
+# Compatibility fix for WindowsPath
 pathlib.WindowsPath = pathlib.PosixPath
+
+# Model filename and GDrive link
+model_path = 'ulmfit_airline_model.pkl'
+model_url = 'https://drive.google.com/uc?export=download&id=1cdZScmtkKCT7c_1I9KaGXQWLr7qDAj0n'
+
+# Cache model instance after first load
+learn = None
 
 class TextInput(BaseModel):
     text: str
@@ -28,7 +26,17 @@ def home():
 
 @app.post("/predict/")
 def predict(input: TextInput):
-    learn = load_learner(model_path)
+    global learn
+
+    if not os.path.exists(model_path):
+        print("Downloading model file...")
+        r = requests.get(model_url)
+        with open(model_path, 'wb') as f:
+            f.write(r.content)
+
+    if learn is None:
+        learn = load_learner(model_path)
+
     pred_class, pred_idx, probs = learn.predict(input.text)
     return {
         "input": input.text,
