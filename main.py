@@ -29,10 +29,12 @@ def predict(input: TextInput):
     global learn
 
     if not os.path.exists(model_path):
-        print("Downloading model file...")
-        r = requests.get(model_url)
-        with open(model_path, 'wb') as f:
-            f.write(r.content)
+        print("Downloading model file from Google Drive...")
+        with requests.get(model_url, stream=True) as r:
+            r.raise_for_status()
+            with open(model_path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
 
     if learn is None:
         learn = load_learner(model_path)
